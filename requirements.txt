@@ -9,3 +9,5 @@ langchain-text-splitters
 langchain-qdrant
 langchain-google-genai
 google-generativeai
+huggingface_hub
+sentence_transformers
