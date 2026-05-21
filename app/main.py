@@ -3,7 +3,7 @@ from fastapi.responses import JSONResponse
 from google.genai.errors import ClientError
 from langchain_google_genai.chat_models import ChatGoogleGenerativeAIError
 
-import app.config  # noqa: F401 — load .env before other app modules
+import app.config 
 
 from app.api.routes.upload import router as upload_router
 from app.api.routes.chat import router as chat_router
