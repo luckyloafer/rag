@@ -8,6 +8,9 @@ langchain-core
 langchain-text-splitters
 langchain-qdrant
 langchain-google-genai
+langchain 
+langchain-community
+langchain_classic
 google-generativeai
 huggingface_hub
 sentence_transformers
