@@ -1,4 +1,5 @@
 import shutil
+import uuid
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, UploadFile
@@ -7,6 +8,11 @@ from app.config import GOOGLE_API_KEY
 from app.ingestion.pdf_loader import load_pdf
 from app.ingestion.chunker import create_chunks
 from app.services.vector_service import store_chunks
+from fastapi import BackgroundTasks
+from app.ingestion.process_pdf import process_pdf
+from app.states import document_upload_status
+
+
 
 router = APIRouter()
 TEMP_DIR = Path("temp")
@@ -24,27 +30,39 @@ def _require_gemini_key():
         )
 
 
+document_status = {}
+
 @router.post("/upload")
-async def upload_pdf(file: UploadFile):
+async def upload_pdf(file: UploadFile, background_tasks: BackgroundTasks):
     _require_gemini_key()
+
+    document_id = str(uuid.uuid4())
 
     path = TEMP_DIR / file.filename
 
     with open(path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
-    text = load_pdf(str(path))
-    chunks = create_chunks(text)
+    document_upload_status[document_id] = {
+        "status": "processing",
+        "progress": 0
+    }
 
-    if not chunks:
-        raise HTTPException(
-            status_code=400,
-            detail="No text could be extracted from the PDF.",
-        )
-
-    store_chunks(chunks, file.filename)
+    background_tasks.add_task(process_pdf, document_id, path, file.filename)
 
     return {
-        "message": "PDF uploaded successfully",
-        "chunks": len(chunks),
+        "document_id": document_id,
+        "status": "processing",
+        "filename": file.filename,
     }
+
+
+
+@router.get("/status/{document_id}")
+async def get_status(document_id: str):
+
+    if document_id not in document_upload_status:
+        return {"error": "Invalid document_id"}
+
+    return document_upload_status[document_id]
+
